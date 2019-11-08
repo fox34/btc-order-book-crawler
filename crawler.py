@@ -7,7 +7,7 @@ from time import sleep
 
 if __name__ == "__main__":
     
-    # Erzeuge Objekte, Infinite Loop-Timer startet automatisch
+    # Erzeuge Objekte. Abfrage-Intervall startet automatisch
     # Bitstamp
     QueryExchange.BitstampExchange("bitstamp_usd", "https://www.bitstamp.net/api/v2/order_book/btcusd")
     QueryExchange.BitstampExchange("bitstamp_eur", "https://www.bitstamp.net/api/v2/order_book/btceur")

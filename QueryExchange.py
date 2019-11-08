@@ -8,6 +8,7 @@ import json
 from socket import getfqdn
 from time import time
 from math import floor
+from SetInterval import SetInterval
 
 # Abstrakte Basis-Klasse ohne Code zur Aufbereitung einzelner Datensätze
 class QueryExchange(ABC):
@@ -34,21 +35,19 @@ class QueryExchange(ABC):
         self.name = name
         self.api_url = api_url
         
-        # Starte query asynchron
         print(
-            "Starte", name,
-            "Chunk-Size", self.aggregate_data_chunk_size,
-            "Host", self.hostname
+            "Initialisiere", name,
+            "- Chunk-Size:", self.aggregate_data_chunk_size,
+            "- Host:", self.hostname
         )
+        
+        # Starte Intervall und sofort (asynchron)
+        SetInterval(self.request_interval, self.query)
         Timer(0, self.query).start()
     
     
     # Börse abfragen
     def query(self):
-    
-        # Nach *exakt* x Sekunden erneut starten, unabhängig von Dauer der HTTP-Requests
-        Timer(self.request_interval, self.query).start()
-        
         
         # Bitfinex mag python-User-Agents nicht...
         req = urllib.request.Request(
