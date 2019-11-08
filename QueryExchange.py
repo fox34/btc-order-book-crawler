@@ -1,14 +1,14 @@
 
 # Börsen abfragen und Daten aufbereiten
 from abc import ABC, abstractmethod
-from urllib.parse import urlencode
-import urllib.request
-from threading import Timer
 import json
-from socket import getfqdn
-from time import time
 from math import floor
 from SetInterval import SetInterval
+from socket import getfqdn
+from threading import Timer
+from time import time
+from urllib.parse import urlencode
+import urllib.request
 
 # Abstrakte Basis-Klasse ohne Code zur Aufbereitung einzelner Datensätze
 class QueryExchange(ABC):

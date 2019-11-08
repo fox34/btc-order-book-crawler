@@ -3,15 +3,19 @@
 # Aggregiere immer 5s des Orderbuches und sende es regelmäßig gesammelt an research.noecho.de
 
 import QueryExchange
-from time import sleep
+import time
 
 if __name__ == "__main__":
     
     # Erzeuge Objekte. Abfrage-Intervall startet automatisch
+    # Warte auf nächste volle fünf Sekunden
+    print("Starte Crawler. Warte auf nächste volle fünf Sekunden...")
+    time.sleep(5 - time.time() % 5)
+    
     # Bitstamp
     QueryExchange.BitstampExchange("bitstamp_usd", "https://www.bitstamp.net/api/v2/order_book/btcusd")
     QueryExchange.BitstampExchange("bitstamp_eur", "https://www.bitstamp.net/api/v2/order_book/btceur")
-    sleep(1)
+    time.sleep(5 - time.time() % 5)
     
     # Bitfinex
     # P0 = Aggregation gleicher Preise (Count = Anzahl der Aufträge)
@@ -19,7 +23,7 @@ if __name__ == "__main__":
     # len = Abgefragte Datensätze (1, 25, 100)
     QueryExchange.BitfinexExchange("bitfinex_usd", "https://api-pub.bitfinex.com/v2/book/tBTCUSD/P0?len=25")
     QueryExchange.BitfinexExchange("bitfinex_eur", "https://api-pub.bitfinex.com/v2/book/tBTCEUR/P0?len=25")
-    sleep(1)
+    time.sleep(5 - time.time() % 5)
     
     # Coinbase
     # Level = Detailgrad. 1 = Nur bester Bid/Ask; 2 = Top 50 Bid/Ask, aggregiert; 3 = Volles Orderbuch
