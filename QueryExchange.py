@@ -132,6 +132,9 @@ class BitstampExchange(QueryExchange):
         # JSON hat bereits richtige Struktur
         dataset = json.loads(dataset)
         
+        # Timestamp auf Millisekunden-Basis
+        dataset['timestamp'] = time()
+        
         # Beschränke auf 10 Bids+Asks
         dataset['bids'] = dataset['bids'][0:10]
         dataset['asks'] = dataset['asks'][0:10]
@@ -163,7 +166,7 @@ class BitfinexExchange(QueryExchange):
         #     ...
         # ]
         result = {
-            "timestamp": floor(time()),
+            "timestamp": time(),
             "bids": [],
             "asks": []
         }
@@ -214,7 +217,7 @@ class CoinbaseExchange(QueryExchange):
         # }
         
         result = {
-            "timestamp": floor(time()),
+            "timestamp": time(),
             "bids": [],
             "asks": []
         }
