@@ -58,12 +58,12 @@ class QueryExchange(ABC):
         )
         
         # Börse abfragen
-        with urllib.request.urlopen(req) as response:
-            if response.getcode() == 200:
+        try:
+            with urllib.request.urlopen(req) as response:
                 self.aggregate_data.append(self.prepare_dataset(response.read()))
-            else:
-                print("Error while querying the exchange!", self.api_url, response.read())
-                # TODO Fehlerbehandlung? Lücken sind eigentlich zu vermeiden
+        except HTTPError as e:
+            print("!!! Error while querying the exchange!", self.api_url, e.code, e.reason)
+            # TODO Fehlerbehandlung? Logging? Lücken sind eigentlich zu vermeiden
         
         
         #print(self.name, self.aggregate_data)
