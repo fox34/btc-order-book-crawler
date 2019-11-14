@@ -61,7 +61,7 @@ class QueryExchange(ABC):
         try:
             with urllib.request.urlopen(req) as response:
                 self.aggregate_data.append(self.prepare_dataset(response.read()))
-        except HTTPError as e:
+        except urllib.error.HTTPError as e:
             print("!!! Error while querying the exchange!", self.api_url, e.code, e.reason)
             # TODO Fehlerbehandlung? Logging? Lücken sind eigentlich zu vermeiden
         
