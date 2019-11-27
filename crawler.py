@@ -40,7 +40,7 @@ if __name__ == "__main__":
     QueryExchange.BitstampExchange("bitstamp_eur", "https://www.bitstamp.net/api/v2/order_book/btceur")
     
     # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
-    if (sleep_time_between_exchanges == 4.5 and now % 5 >= 4.5):
+    if (sleep_time_between_exchanges == 4.5 and time.time() % 5 >= 4.5):
         time.sleep(.51)
     time.sleep(sleep_time_between_exchanges - time.time() % 5)
     
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     QueryExchange.BitfinexExchange("bitfinex_eur", "https://api-pub.bitfinex.com/v2/book/tBTCEUR/P0?len=25")
 
     # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
-    if (sleep_time_between_exchanges == 4.5 and now % 5 >= 4.5):
+    if (sleep_time_between_exchanges == 4.5 and time.time() % 5 >= 4.5):
         time.sleep(.51)
     time.sleep(sleep_time_between_exchanges - time.time() % 5)
     
