@@ -4,13 +4,28 @@
 
 import QueryExchange
 import time
+import config
 
 if __name__ == "__main__":
     
     # Erzeuge Objekte. Abfrage-Intervall startet automatisch
-    # Warte auf nächste volle fünf Sekunden
-    print("Starte Crawler. Warte auf nächste volle fünf Sekunden...")
-    time.sleep(5 - time.time() % 5)
+    if (config.start_time_delay == "immediately"):
+        # Starte sofort
+        print("Starte Crawler.")
+        
+    elif (config.start_time_delay == "slightly_ahead_5_seconds"):
+        # Warte etwas weniger als nächste volle fünf Sekunden
+        print("Starte Crawler. Warte auf nächste volle 4.5 Sekunden...")
+        time.sleep(4.5 - time.time() % 5)
+    
+    elif (config.start_time_delay == "full_5_seconds"):
+        # Warte auf nächste volle fünf Sekunden
+        print("Starte Crawler. Warte auf nächste volle fünf Sekunden...")
+        time.sleep(5 - time.time() % 5)
+    
+    else:
+        raise Exception("Unknown configuration setting for start_time_delay.")
+    
     
     # Bitstamp
     QueryExchange.BitstampExchange("bitstamp_usd", "https://www.bitstamp.net/api/v2/order_book/btcusd")

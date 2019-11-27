@@ -91,12 +91,15 @@ class QueryExchange(ABC):
         req = urllib.request.Request(self.aggregate_data_endpoint, send_data)
         
         # TODO Gesendete Daten bei Fehler behalten / Anfrage wiederholen?!
-        with urllib.request.urlopen(req) as response:
-            #print(response.read())
-            print("{:10.6f}".format(time()), self.name, round(len(send_data)/1000, 1), "kB an Sammel-API, HTTP-Code", response.getcode())
-            if response.getcode() != 200:
-                print("Error message:", response.read())
-    
+        try:
+            with urllib.request.urlopen(req) as response:
+                #print(response.read())
+                print("{:10.6f}".format(time()), self.name, round(len(send_data)/1000, 1), "kB an Sammel-API, HTTP-Code", response.getcode())
+                if response.getcode() != 200:
+                    print("Error message:", response.read())
+        except urllib.error.HTTPError as e:
+            print("!!! Error while sending results!", e.code, e.reason)
+            # TODO Fehlerbehandlung, Logging
     
     # Daten aufbereiten
     @abstractmethod
