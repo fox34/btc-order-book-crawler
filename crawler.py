@@ -11,15 +11,15 @@ if __name__ == "__main__":
     # Erzeuge Objekte. Abfrage-Intervall startet automatisch
     if (config.start_time_delay == "immediately"):
         # Starte sofort
-        print("Starte Crawler.")
+        print("Starting crawler.")
         sleep_time_between_exchanges = 5
         
     elif (config.start_time_delay == "slightly_ahead_5_seconds"):
         # Warte etwas weniger als nächste volle fünf Sekunden
-        print("Starte Crawler. Warte auf nächste volle 4.5 Sekunden...")
+        print("Starting crawler. Waiting for next 4.5 / 9.5 seconds...")
         
         # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
-        if (now % 5 >= 4.5):
+        if (time.time() % 5 >= 4.5):
             time.sleep(.51)
         
         time.sleep(4.5 - time.time() % 5)
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     
     elif (config.start_time_delay == "full_5_seconds"):
         # Warte auf nächste volle fünf Sekunden
-        print("Starte Crawler. Warte auf nächste volle fünf Sekunden...")
+        print("Starting crawler. Waiting for next full five seconds...")
         time.sleep(5 - time.time() % 5)
         sleep_time_between_exchanges = 5
     

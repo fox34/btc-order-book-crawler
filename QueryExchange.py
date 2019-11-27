@@ -37,8 +37,8 @@ class QueryExchange(ABC):
         
         print(
             "{:10.6f}".format(time()),
-            "Initialisiere", name,
-            "- Chunk-Size:", self.aggregate_data_chunk_size,
+            name,
+            "- Chunk size:", self.aggregate_data_chunk_size,
             "- Host:", self.hostname
         )
         
@@ -95,7 +95,7 @@ class QueryExchange(ABC):
         try:
             with urllib.request.urlopen(req) as response:
                 #print(response.read())
-                print("{:10.6f}".format(time()), self.name, round(len(send_data)/1000, 1), "kB an Sammel-API, HTTP-Code", response.getcode())
+                print("{:10.6f}".format(time()), self.name, round(len(send_data)/1000, 1), "kB to aggregation API, HTTP-Code", response.getcode())
                 if response.getcode() != 200:
                     print("Error message:", response.read())
         except urllib.error.HTTPError as e:
