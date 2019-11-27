@@ -12,16 +12,24 @@ if __name__ == "__main__":
     if (config.start_time_delay == "immediately"):
         # Starte sofort
         print("Starte Crawler.")
+        sleep_time_between_exchanges = 5
         
     elif (config.start_time_delay == "slightly_ahead_5_seconds"):
         # Warte etwas weniger als nächste volle fünf Sekunden
         print("Starte Crawler. Warte auf nächste volle 4.5 Sekunden...")
+        
+        # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
+        if (now % 5 >= 4.5):
+            time.sleep(.51)
+        
         time.sleep(4.5 - time.time() % 5)
+        sleep_time_between_exchanges = 4.5
     
     elif (config.start_time_delay == "full_5_seconds"):
         # Warte auf nächste volle fünf Sekunden
         print("Starte Crawler. Warte auf nächste volle fünf Sekunden...")
         time.sleep(5 - time.time() % 5)
+        sleep_time_between_exchanges = 5
     
     else:
         raise Exception("Unknown configuration setting for start_time_delay.")
@@ -30,7 +38,11 @@ if __name__ == "__main__":
     # Bitstamp
     QueryExchange.BitstampExchange("bitstamp_usd", "https://www.bitstamp.net/api/v2/order_book/btcusd")
     QueryExchange.BitstampExchange("bitstamp_eur", "https://www.bitstamp.net/api/v2/order_book/btceur")
-    time.sleep(5 - time.time() % 5)
+    
+    # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
+    if (sleep_time_between_exchanges == 4.5 and now % 5 >= 4.5):
+        time.sleep(.51)
+    time.sleep(sleep_time_between_exchanges - time.time() % 5)
     
     # Bitfinex
     # P0 = Aggregation gleicher Preise (Count = Anzahl der Aufträge)
@@ -38,7 +50,11 @@ if __name__ == "__main__":
     # len = Abgefragte Datensätze (1, 25, 100)
     QueryExchange.BitfinexExchange("bitfinex_usd", "https://api-pub.bitfinex.com/v2/book/tBTCUSD/P0?len=25")
     QueryExchange.BitfinexExchange("bitfinex_eur", "https://api-pub.bitfinex.com/v2/book/tBTCEUR/P0?len=25")
-    time.sleep(5 - time.time() % 5)
+
+    # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
+    if (sleep_time_between_exchanges == 4.5 and now % 5 >= 4.5):
+        time.sleep(.51)
+    time.sleep(sleep_time_between_exchanges - time.time() % 5)
     
     # Coinbase
     # Level = Detailgrad. 1 = Nur bester Bid/Ask; 2 = Top 50 Bid/Ask, aggregiert; 3 = Volles Orderbuch

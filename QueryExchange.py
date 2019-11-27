@@ -36,6 +36,7 @@ class QueryExchange(ABC):
         self.api_url = api_url
         
         print(
+            "{:10.6f}".format(time()),
             "Initialisiere", name,
             "- Chunk-Size:", self.aggregate_data_chunk_size,
             "- Host:", self.hostname
