@@ -30,3 +30,11 @@ Mehrere Aufträge mit dem selben Preislimit werden automatisch (durch die Börse
     - https://api.pro.coinbase.com/products/BTC-USD/book?level=2
     - https://api.pro.coinbase.com/products/BTC-EUR/book?level=2
 - Abfrageintervall: 5 Sekunden
+
+### Kraken
+
+- Referenz: https://www.kraken.com/features/api#get-order-book
+- Abfrage folgender URLs:
+    - https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=10
+    - https://api.kraken.com/0/public/Depth?pair=XBTEUR&count=10
+- Abfrageintervall: 5 Sekunden
