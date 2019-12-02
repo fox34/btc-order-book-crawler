@@ -14,3 +14,12 @@
 # 
 start_time_delay = "full_5_seconds"
 
+
+# Sammel-API
+aggregate_data_endpoint = "https://example.com/aggregate.php"
+
+
+# Chunk-Größe
+# 24 Datensätze = 2min = ca. 14-15 kB (Bitfinex) // 20-21 kB (Coinbase) // 22-23 kB (Bitstamp)
+# 60 Datensätze = 5min = ca. 42-43 kB (Bitfinex) // 51-52 kB (Coinbase) // 56-57 kB (Bitstamp)
+aggregate_data_chunk_size = 60

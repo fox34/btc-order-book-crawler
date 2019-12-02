@@ -39,6 +39,7 @@ if __name__ == "__main__":
     QueryExchange.BitstampExchange("bitstamp_usd", "https://www.bitstamp.net/api/v2/order_book/btcusd")
     QueryExchange.BitstampExchange("bitstamp_eur", "https://www.bitstamp.net/api/v2/order_book/btceur")
     
+    
     # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
     if (sleep_time_between_exchanges == 4.5 and time.time() % 5 >= 4.5):
         time.sleep(.51)
@@ -51,6 +52,7 @@ if __name__ == "__main__":
     QueryExchange.BitfinexExchange("bitfinex_usd", "https://api-pub.bitfinex.com/v2/book/tBTCUSD/P0?len=25")
     QueryExchange.BitfinexExchange("bitfinex_eur", "https://api-pub.bitfinex.com/v2/book/tBTCEUR/P0?len=25")
 
+    
     # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
     if (sleep_time_between_exchanges == 4.5 and time.time() % 5 >= 4.5):
         time.sleep(.51)
@@ -59,5 +61,16 @@ if __name__ == "__main__":
     # Coinbase
     # Level = Detailgrad. 1 = Nur bester Bid/Ask; 2 = Top 50 Bid/Ask, aggregiert; 3 = Volles Orderbuch
     QueryExchange.CoinbaseExchange("coinbase_usd", "https://api.pro.coinbase.com/products/BTC-USD/book?level=2")
-    QueryExchange.CoinbaseExchange("coinbase_eur", "https://api.pro.coinbase.com/products/BTC-EUR/book?level=2")  
+    QueryExchange.CoinbaseExchange("coinbase_eur", "https://api.pro.coinbase.com/products/BTC-EUR/book?level=2")
+    
+    
+    # Zwischen 4,5 und 4,999 oder 9,5 und 9,999s: Warte auf nächsten Zyklus
+    if (sleep_time_between_exchanges == 4.5 and time.time() % 5 >= 4.5):
+        time.sleep(.51)
+    time.sleep(sleep_time_between_exchanges - time.time() % 5)
+    
+    # Kraken
+    # Count = Maximale Anzahl Bid/Ask
+    QueryExchange.KrakenExchange("kraken_usd", "https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=10")
+    QueryExchange.KrakenExchange("kraken_eur", "https://api.kraken.com/0/public/Depth?pair=XBTEUR&count=10")
     

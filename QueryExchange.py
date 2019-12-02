@@ -9,21 +9,13 @@ from threading import Timer
 from time import time
 from urllib.parse import urlencode
 import urllib.request
+import config
 
 # Abstrakte Basis-Klasse ohne Code zur Aufbereitung einzelner Datensätze
 class QueryExchange(ABC):
 
-    # Klassen-Variablen, geteilt
+    # Klassen-Variablen, geteilt von allen abgeleiteten Instanzen
     hostname = getfqdn()
-    
-    # API-Adresse des Sammelskriptes
-    aggregate_data_endpoint = "https://research.noecho.de/btc-triangular-arbitrage/cron/order-book-5s.php"
-    
-    # Chunk-Größe
-    # 24 Datensätze = 2min = ca. 14-15 kB (Bitfinex) // 20-21 kB (Coinbase) // 22-23 kB (Bitstamp)
-    # 60 Datensätze = 5min = ca. 42-43 kB (Bitfinex) // 51-52 kB (Coinbase) // 56-57 kB (Bitstamp)
-    aggregate_data_chunk_size = 60
-    
     
     # Init: Instanz-Variablen, Bezeichnung und API-URL festlegen
     def __init__(self, name, api_url):
@@ -38,7 +30,7 @@ class QueryExchange(ABC):
         print(
             "{:10.6f}".format(time()),
             name,
-            "- Chunk size:", self.aggregate_data_chunk_size,
+            "- Chunk size:", config.aggregate_data_chunk_size,
             "- Host:", self.hostname
         )
         
@@ -51,10 +43,13 @@ class QueryExchange(ABC):
     def query(self):
         
         # Bitfinex mag python-User-Agents nicht...
+        # Kraken hat einen "Browser Integrity Check", benötigt alle Header
         req = urllib.request.Request(
             self.api_url,
             headers = {
-                'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Safari/605.1.15"
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Safari/605.1.15',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Connection': 'keep-alive'
             }
         )
         
@@ -70,7 +65,7 @@ class QueryExchange(ABC):
         #print(self.name, self.aggregate_data)
         
         # Nach x Datensätzen an Sammelskript senden
-        if (len(self.aggregate_data) >= self.aggregate_data_chunk_size):
+        if (len(self.aggregate_data) >= config.aggregate_data_chunk_size):
             self.send_to_collector()
     
     
@@ -89,7 +84,7 @@ class QueryExchange(ABC):
         self.aggregate_data = []
         #print("Sending aggregate", send_data)
         
-        req = urllib.request.Request(self.aggregate_data_endpoint, send_data)
+        req = urllib.request.Request(config.aggregate_data_endpoint, send_data)
         
         # TODO Gesendete Daten bei Fehler behalten / Anfrage wiederholen?!
         try:
@@ -237,6 +232,65 @@ class CoinbaseExchange(QueryExchange):
             result['bids'].append([order[0], order[1]])
             
         for order in dataset['asks']:
+            result['asks'].append([order[0], order[1]])
+        
+        return result
+
+
+# https://www.kraken.com/features/api#get-order-book
+class KrakenExchange(QueryExchange):
+    
+    # Abfrageintervall in Sekunden
+    # Berücksichtigen, dass jede Börse i.d.R. direkt 2x abgefragt wird: EUR+USD
+    # Limit Stand 02.12.2019:
+    # Counter für jede Anfrage +1
+    # Reduktion des Counters alle 3 Sekunden um 1
+    # Maximaler Counter: 15
+    # Läuft mit 5s-Intervall?
+    request_interval = 5
+    
+    # Datensatz aufbereiten
+    def prepare_dataset(self, dataset):
+        # https://www.kraken.com/features/api#get-order-book
+        # <price>,<volume>,<timestamp>
+        # {
+        #     "error": [],
+        #     "result": {
+        #         "XXBTZUSD": {
+        #             "asks": [
+        #                 ["7347.60000", "0.630", 1575296019],
+        #                 ["7350.00000", "8.486", 1575296021],
+        #                 ...
+        #             ],
+        #             "bids": [
+        #                 ["7347.50000", "10.928", 1575296021],
+        #                 ["7346.00000", "0.307", 1575296019],
+        #                 ...
+        #             ]
+        #         }
+        #     }
+        # }
+        
+        result = {
+            "timestamp": time(),
+            "bids": [],
+            "asks": []
+        }
+        
+        dataset = json.loads(dataset)
+        if dataset['error']:
+            print("Kraken error!!!", dataset['error'])
+            return result
+        
+        dataset = dataset['result']
+        
+        set_name = list(dataset)[0]
+        
+        # Nur Preis + Ordergröße benötigt
+        for order in dataset[set_name]['bids']:
+            result['bids'].append([order[0], order[1]])
+            
+        for order in dataset[set_name]['asks']:
             result['asks'].append([order[0], order[1]])
         
         return result
