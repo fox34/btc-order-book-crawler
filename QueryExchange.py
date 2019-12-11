@@ -1,7 +1,9 @@
 
 # Börsen abfragen und Daten aufbereiten
 from abc import ABC, abstractmethod
+import config
 import json
+import logging
 from math import floor
 from SetInterval import SetInterval
 from socket import getfqdn
@@ -9,7 +11,6 @@ from threading import Timer
 from time import time
 from urllib.parse import urlencode
 import urllib.request
-import config
 
 # Abstrakte Basis-Klasse ohne Code zur Aufbereitung einzelner Datensätze
 class QueryExchange(ABC):
@@ -27,17 +28,20 @@ class QueryExchange(ABC):
         self.name = name
         self.api_url = api_url
         
-        print(
-            "{:10.6f}".format(time()),
-            name,
-            "- Chunk size:", config.aggregate_data_chunk_size,
-            "- Host:", self.hostname
+        logging.info(
+            name + 
+            " - Chunk size: " + str(config.aggregate_data_chunk_size) + 
+            " - Host: " + self.hostname
         )
         
         # Starte Intervall und sofort (asynchron)
-        SetInterval(self.request_interval, self.query)
+        self.interval = SetInterval(self.request_interval, self.query)
         Timer(0, self.query).start()
     
+    # Abbruch
+    def shutdown(self):
+        self.interval.cancel()
+        self.send_to_collector()
     
     # Börse abfragen
     def query(self):
@@ -58,9 +62,11 @@ class QueryExchange(ABC):
             with urllib.request.urlopen(req) as response:
                 self.aggregate_data.append(self.prepare_dataset(response.read()))
         except urllib.error.HTTPError as e:
-            print("!!! Error while querying the exchange!", self.api_url, e.code, e.reason)
-            # TODO Fehlerbehandlung? Logging? Lücken sind eigentlich zu vermeiden
-        
+            logging.error("Error while querying " + self.api_url + " " + str(e.code) + e.reason)
+            # TODO Fehlerbehandlung? Lücken sind eigentlich zu vermeiden
+        except urllib.error.URLError as e:
+            logging.error("Error while querying " + self.api_url + " " + str(e.code) + e.reason)
+            # TODO Fehlerbehandlung? Lücken sind eigentlich zu vermeiden
         
         #print(self.name, self.aggregate_data)
         
@@ -71,6 +77,10 @@ class QueryExchange(ABC):
     
     # Daten an Sammelskript senden
     def send_to_collector(self):
+        
+        if len(self.aggregate_data) == 0:
+            print("Nothing to send.")
+            return
         
         # Daten aufbereiten
         send_data = urlencode({
@@ -90,13 +100,16 @@ class QueryExchange(ABC):
         try:
             with urllib.request.urlopen(req) as response:
                 #print(response.read())
-                print("{:10.6f}".format(time()), self.name, round(len(send_data)/1000, 1), "kB to aggregation API, HTTP-Code", response.getcode())
+                logging.info(self.name + " " + str(round(len(send_data)/1000, 1)) + "kB to aggregation API, HTTP-Code " + str(response.getcode()))
                 if response.getcode() != 200:
-                    print("Error message:", response.read())
+                    logging.error("HTTP != 200, Error message: " + response.read())
         except urllib.error.HTTPError as e:
-            print("!!! Error while sending results!", e.code, e.reason)
-            # TODO Fehlerbehandlung, Logging
-    
+            logging.error("Error while sending results! " + str(e.code) + e.reason)
+            # TODO Fehlerbehandlung
+        except urllib.error.URLError as e:
+            logging.error("Error while querying the exchange! " + str(e.code) + e.reason)
+            # TODO Fehlerbehandlung? Lücken sind eigentlich zu vermeiden
+        
     # Daten aufbereiten
     @abstractmethod
     def prepare_dataset(self, dataset):
@@ -279,7 +292,7 @@ class KrakenExchange(QueryExchange):
         
         dataset = json.loads(dataset)
         if dataset['error']:
-            print("Kraken error!!!", dataset['error'])
+            logging.error("Kraken error: " + dataset['error'])
             return result
         
         dataset = dataset['result']
