@@ -1,5 +1,3 @@
-
-# Börsen abfragen und Daten aufbereiten
 from abc import ABC, abstractmethod
 import config
 import json
@@ -12,19 +10,19 @@ from time import time
 from urllib.parse import urlencode
 import urllib.request
 
-# Abstrakte Basis-Klasse ohne Code zur Aufbereitung einzelner Datensätze
+# Abstract query class without knowledge of custom exchange data formats
 class QueryExchange(ABC):
-
-    # Klassen-Variablen, geteilt von allen abgeleiteten Instanzen
+    
+    # Hostname, useful if several crawlers are being used
     hostname = getfqdn()
     
-    # Init: Instanz-Variablen, Bezeichnung und API-URL festlegen
+    # Set instance variables, crawler name, API URL
     def __init__(self, name, api_url):
         
-        # Instanz-Variablen, KEINE (geteilten) Klassen-Variablen!!!
+        # Current buffer
         self.aggregate_data = []
         
-        # Eigenschaften festlegen
+        # Crawler properties
         self.name = name
         self.api_url = api_url
         
@@ -34,20 +32,20 @@ class QueryExchange(ABC):
             " - Host: " + self.hostname
         )
         
-        # Starte Intervall und sofort (asynchron)
+        # Start asynchronously
         self.interval = SetInterval(self.request_interval, self.query)
         Timer(0, self.query).start()
     
-    # Abbruch
+    # Shutdown activity, send remaining data to collector
     def shutdown(self):
         self.interval.cancel()
         self.send_to_collector()
     
-    # Börse abfragen
+    # Query exchange
     def query(self):
         
-        # Bitfinex mag python-User-Agents nicht...
-        # Kraken hat einen "Browser Integrity Check", benötigt alle Header
+        # Bitfinex denies python user agents
+        # Kraken uses "Browser Integrity Check"
         req = urllib.request.Request(
             self.api_url,
             headers = {
@@ -57,32 +55,32 @@ class QueryExchange(ABC):
             }
         )
         
-        # Börse abfragen
+        # Send query
         try:
             with urllib.request.urlopen(req) as response:
                 self.aggregate_data.append(self.prepare_dataset(response.read()))
         except urllib.error.HTTPError as e:
             logging.error("Error while querying " + self.api_url + " " + str(e.code) + e.reason)
-            # TODO Fehlerbehandlung? Lücken sind eigentlich zu vermeiden
+            # TODO Error handling
         except urllib.error.URLError as e:
             logging.error("Error while querying " + self.api_url + " " + str(e.code) + e.reason)
-            # TODO Fehlerbehandlung? Lücken sind eigentlich zu vermeiden
+            # TODO Error handling
         
         #print(self.name, self.aggregate_data)
         
-        # Nach x Datensätzen an Sammelskript senden
+        # Send buffer to collector
         if (len(self.aggregate_data) >= config.aggregate_data_chunk_size):
             self.send_to_collector()
     
     
-    # Daten an Sammelskript senden
+    # Send buffer to collector
     def send_to_collector(self):
         
         if len(self.aggregate_data) == 0:
             print("Nothing to send.")
             return
         
-        # Daten aufbereiten
+        # Build POST request data
         send_data = urlencode({
             "source_host": self.hostname,
             "exchange": self.name,
@@ -90,13 +88,13 @@ class QueryExchange(ABC):
         })
         send_data = send_data.encode("ascii")
         
-        # Interne Daten zurücksetzen
+        # Reset buffer
         self.aggregate_data = []
         #print("Sending aggregate", send_data)
         
         req = urllib.request.Request(config.aggregate_data_endpoint, send_data)
         
-        # TODO Gesendete Daten bei Fehler behalten / Anfrage wiederholen?!
+        # TODO Error handling
         try:
             with urllib.request.urlopen(req) as response:
                 #print(response.read())
@@ -105,12 +103,11 @@ class QueryExchange(ABC):
                     logging.error("HTTP != 200, Error message: " + response.read())
         except urllib.error.HTTPError as e:
             logging.error("Error while sending results! " + str(e.code) + e.reason)
-            # TODO Fehlerbehandlung
         except urllib.error.URLError as e:
             logging.error("Error while querying the exchange! " + str(e.code) + e.reason)
-            # TODO Fehlerbehandlung? Lücken sind eigentlich zu vermeiden
+
         
-    # Daten aufbereiten
+    # Parse exchange response
     @abstractmethod
     def prepare_dataset(self, dataset):
         pass
@@ -119,12 +116,12 @@ class QueryExchange(ABC):
 # https://www.bitstamp.net/api/
 class BitstampExchange(QueryExchange):
     
-    # Abfrageintervall in Sekunden
-    # Berücksichtigen, dass jede Börse i.d.R. direkt 2x abgefragt wird: EUR+USD
-    # Limit: 8.000 pro 10 Minuten = 800 pro Minute = 13,3 pro Sekunde, Stand 07.11.2019
+    # Request interval in seconds
+    # Reminder: Each exchange will be queried twice a second (EUR + USD)
+    # Limit: 8.000 in 10 minutes = 800 per minute = 13,3 per second as of 2019-11-07
     request_interval = 5
     
-    # Datensatz aufbereiten
+    # Parse exchange response
     def prepare_dataset(self, dataset):
         # https://www.bitstamp.net/api/
         # {
@@ -141,13 +138,13 @@ class BitstampExchange(QueryExchange):
         #     ]
         # }
         
-        # JSON hat bereits richtige Struktur
+        # Response has correct structure
         dataset = json.loads(dataset)
         
-        # Timestamp auf Millisekunden-Basis
+        # Timestamp in milliseconds
         dataset['timestamp'] = time()
         
-        # Beschränke auf 10 Bids+Asks
+        # Limit to 10 bids+asks
         dataset['bids'] = dataset['bids'][0:10]
         dataset['asks'] = dataset['asks'][0:10]
         
@@ -157,18 +154,18 @@ class BitstampExchange(QueryExchange):
 # https://docs.bitfinex.com/reference
 class BitfinexExchange(QueryExchange):
     
-    # Abfrageintervall in Sekunden
-    # Berücksichtigen, dass jede Börse i.d.R. direkt 2x abgefragt wird: EUR+USD
-    # Limit (für Order Books): 30 pro Minute = alle 2 Sekunden, Stand 07.11.2019
+    # Request interval in seconds
+    # Reminder: Each exchange will be queried twice a second (EUR + USD)
+    # Limit (order books): 30 per minute as of 2019-11-07
     request_interval = 5
     
-    # Datensatz aufbereiten
+    # Parse exchange response
     def prepare_dataset(self, dataset):
         # https://docs.bitfinex.com/reference#rest-public-books
         # Amount >0 = BID / <0 = ASK
         # 
-        # Preis, Anzahl Aufträge, Anzahl Bitcoins (Price, Count, Amount)
-        # Erst Bids nach Preis absteigend, dann Asks nach Preis aufsteigend
+        # Price, NumOffers, Amount
+        # Sorted by bids descending, then asks ascending
         # [
         #     [9205.1, 2, 1.30681808]
         #     [9205.0, 1, 0.4],
@@ -185,7 +182,7 @@ class BitfinexExchange(QueryExchange):
         
         dataset = json.loads(dataset)
         
-        # Sicherheitshalber als String, da Menge im Original-JSON float ist
+        # For maximum precision: handle float as string to prevent unwanted rounding
         for order in dataset:
             if order[2] > 0:
                 # BID
@@ -195,23 +192,22 @@ class BitfinexExchange(QueryExchange):
                 # ASK
                 result['asks'].append([order[0], str(-order[2])])
         
-        # Beschränke auf 10 Bids+Asks
+        # Limit to 10 bids+asks
         result['bids'] = result['bids'][0:10]
         result['asks'] = result['asks'][0:10]
         
         return result
 
 
-# Achtung: Unterschied Pro-API und Basis-API
 # https://docs.pro.coinbase.com
 class CoinbaseExchange(QueryExchange):
     
-    # Abfrageintervall in Sekunden
-    # Berücksichtigen, dass jede Börse i.d.R. direkt 2x abgefragt wird: EUR+USD
-    # Limit: 3 Abfragen pro Sekunde, Stand 07.11.2019
+    # Request interval in seconds
+    # Reminder: Each exchange will be queried twice a second (EUR + USD)
+    # Limit: 3 requests per second as of 2019-11-07
     request_interval = 5
     
-    # Datensatz aufbereiten
+    # Parse exchange response
     def prepare_dataset(self, dataset):
         # https://docs.pro.coinbase.com/#get-product-order-book
         # {
@@ -236,11 +232,11 @@ class CoinbaseExchange(QueryExchange):
         
         dataset = json.loads(dataset)
         
-        # Beschränke auf 10 Bids+Asks
+        # Limit to 10 bids+asks
         dataset['bids'] = dataset['bids'][0:10]
         dataset['asks'] = dataset['asks'][0:10]
         
-        # Nur Preis + Ordergröße benötigt
+        # Keep only price and order size
         for order in dataset['bids']:
             result['bids'].append([order[0], order[1]])
             
@@ -253,16 +249,16 @@ class CoinbaseExchange(QueryExchange):
 # https://www.kraken.com/features/api#get-order-book
 class KrakenExchange(QueryExchange):
     
-    # Abfrageintervall in Sekunden
-    # Berücksichtigen, dass jede Börse i.d.R. direkt 2x abgefragt wird: EUR+USD
+    # Request interval in seconds
+    # Reminder: Each exchange will be queried twice a second (EUR + USD)
     # Limit Stand 02.12.2019:
-    # Counter für jede Anfrage +1
-    # Reduktion des Counters alle 3 Sekunden um 1
-    # Maximaler Counter: 15
-    # Läuft mit 5s-Intervall?
+    # Counter for each request +1
+    # Counter is reduced by 1 each 3 seconds
+    # Counter limit: 15
+    # ???
     request_interval = 5
     
-    # Datensatz aufbereiten
+    # Parse exchange response
     def prepare_dataset(self, dataset):
         # https://www.kraken.com/features/api#get-order-book
         # <price>,<volume>,<timestamp>
@@ -299,7 +295,7 @@ class KrakenExchange(QueryExchange):
         
         set_name = list(dataset)[0]
         
-        # Nur Preis + Ordergröße benötigt
+        # Keep only price and order size
         for order in dataset[set_name]['bids']:
             result['bids'].append([order[0], order[1]])
             

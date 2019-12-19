@@ -1,5 +1,5 @@
-# Intervall mit Drift-Korrektur
-# Quelle: https://stackoverflow.com/a/48709380
+# Set interval with drift correction
+# Source: https://stackoverflow.com/a/48709380
 
 from time import time
 import threading
