@@ -1,3 +1,5 @@
+# WARNING: This repository is not maintained any longer.
+
 # Periodically crawl order books of common bitcoin exchanges
 
 ## Data description
